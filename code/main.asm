@@ -5,7 +5,6 @@
 ; http://www.vittorionardone.it
 ;==========================================================
 
-
 ;==========================================================
 ; LABELS
 ; Comment or uncomment the lines below 
@@ -60,17 +59,18 @@ CURSORPOS     = $e50a
 ; SETTINGS
 ;==========================================================
 
-NDIM            !byte $08              ; max is $0C / 12
+NDIM            !byte $08              ; in 4-12 range
 QUEENCHAR       !byte $77
 BOARDCHAR       !byte $A6
+COLOR           !byte $01
 
 ;==========================================================
 ; CODE
 ;==========================================================
-
+!zn
 entry
 
-                lda #$01                ; load color value
+                lda COLOR               ; load color value
                 sta BGCOLOR             ; change background color
                 sta BORDERCOLOR         ; change border color
                 jsr CLEARSCREEN         ; clear the screen
@@ -87,20 +87,20 @@ entry
                 sec
                 sbc #$30
                 cmp #$01
-                bne _entrycheck
+                bne .entrycheck
                 jsr waitkey             ; wait for dimension
                 sec
                 sbc #$26
                 cmp #$0D
                 bcs entry
-                jmp _entrystore                
-_entrycheck     cmp #$04
+                jmp .entrystore                
+.entrycheck     cmp #$04
                 bcc entry
                 cmp #$0A
                 bcs entry
 
                
-_entrystore     sta NDIM                ; store dimension
+.entrystore     sta NDIM                ; store dimension
 
                 lda #$00
                 ldx NDIM
@@ -122,7 +122,7 @@ _entrystore     sta NDIM                ; store dimension
 ;==========================================================
 ; Init
 ;==========================================================
-
+!zn
 CHESSBOARD      !fill $FF, $00	        ; reserve 255 bytes
 NDIML1          !byte $00    
 NDIMP1          !byte $00 
@@ -136,10 +136,10 @@ init            ldx NDIM
                 lda BOARDCHAR
                 ldx #$00
 ;
-_initloop       sta CHESSBOARD,x 
+.initloop       sta CHESSBOARD,x 
                 inx
                 cpx #$FF
-                bne _initloop
+                bne .initloop
                 rts
 
 ;==========================================================
@@ -148,70 +148,70 @@ _initloop       sta CHESSBOARD,x
 ;  ldx #$00         ; (row no, 0..7)
 ;  jsr run
 ;==========================================================
-
-_RUNX           !byte $00
-_RUNY           !byte $00  
-_LASTRUNY       !fill $0C, $00 
-_FOUNDCOUNTL    !byte $00
-_FOUNDCOUNTH    !byte $00
+!zn
+.RUNX           !byte $00
+.RUNY           !byte $00  
+.LASTRUNY       !fill $0C, $00 
+.FOUNDCOUNTL    !byte $00
+.FOUNDCOUNTH    !byte $00
 
 run
-                stx _RUNX             ; store location
+                stx .RUNX             ; store location
                 ldy #$00
 
-_rungo          sty _RUNY   
+.rungo          sty .RUNY   
                 jsr offsetcalc          ; calculate mem offset
-                ldy _OFFSET             ; get offset from stack
+                ldy OFFSET             ; get offset from stack
                 lda CHESSBOARD,y        ; get chessboard cell
                 cmp BOARDCHAR           ; check if empty
-                bne _runnext
-                ldx _RUNX
-                lda _RUNY
-                sta _LASTRUNY, x
+                bne .runnext
+                ldx .RUNX
+                lda .RUNY
+                sta .LASTRUNY, x
                 tay
                 jsr place 
-                ldx _RUNX
+                ldx .RUNX
                 inx 
                 cpx NDIM
-                beq _runfound
+                beq .runfound
                 jmp run                                     
 
-_runnext        ldx _RUNX
-                ldy _RUNY
+.runnext        ldx .RUNX
+                ldy .RUNY
                 iny
                 cpy NDIM 
-                bne _rungo 
+                bne .rungo 
                 
-_runprevrow     dex
+.runprevrow     dex
                 cpx #$FF
-                beq _runend
+                beq .runend
 
-                stx _RUNX
+                stx .RUNX
                 jsr cleanrow
 
-_runnexty       ldx _RUNX
-                ldy _LASTRUNY, x
+.runnexty       ldx .RUNX
+                ldy .LASTRUNY, x
                 iny
                 cpy NDIM 
-                beq _runprevrow    
+                beq .runprevrow    
 
-                jmp _rungo 
+                jmp .rungo 
 
-_runfound       inc _FOUNDCOUNTL
-                bne _runfoundprint
-                inc _FOUNDCOUNTH
+.runfound       inc .FOUNDCOUNTL
+                bne .runfoundprint
+                inc .FOUNDCOUNTH
 
-_runfoundprint  jsr printboard
-                ldx _RUNX
+.runfoundprint  jsr printboard
+                ldx .RUNX
                 jsr cleanrow
-                jmp _runnexty
+                jmp .runnexty
 
-_runend         
+.runend         
                 ldx #<.found ;string address LSB
                 ldy #>.found ;string address MSB
                 jsr sprint
-                lda _FOUNDCOUNTH
-                ldx _FOUNDCOUNTL
+                lda .FOUNDCOUNTH
+                ldx .FOUNDCOUNTL
                 jsr BUINTOUT
                 lda #$0D     ; go to next line
                 jsr BSOUT
@@ -223,6 +223,7 @@ _runend
 ;==========================================================
 ; Wait for a key pressed
 ;==========================================================
+!zn
 waitkey         jsr $FFE4
                 beq waitkey
                 rts
@@ -234,49 +235,50 @@ waitkey         jsr $FFE4
 ;  ldx #$01 (queen row no, 0..7)
 ;  jsr cleanrow
 ;==========================================================
-_CLEANVALUE     !byte $00
-_CLEANX         !byte $00
-_CLEANCOUNTER   !byte $00
+!zn
+.CLEANVALUE     !byte $00
+.CLEANX         !byte $00
+.CLEANCOUNTER   !byte $00
 
 cleanrow        
-                stx _CLEANX             ; search for queen
+                stx .CLEANX             ; search for queen
                 ldy #$00
                 jsr offsetcalc          ; calculate mem offset
-                ldy _OFFSET             ; get offset from stack
+                ldy OFFSET             ; get offset from stack
                 ldx #$00
                 lda QUEENCHAR 
-_cleanrowloop1  cmp CHESSBOARD,y
-                beq _cleanrowstart
+.cleanrowloop1  cmp CHESSBOARD,y
+                beq .cleanrowstart
                 iny
                 inx                     ; increase counter
                 cpx NDIM                ; end of row?
-                bne _cleanrowloop1  
+                bne .cleanrowloop1  
                 
-_cleanrowstart  lda BOARDCHAR           ; remove queen
+.cleanrowstart  lda BOARDCHAR           ; remove queen
                 sta CHESSBOARD,y 
                 ldy #$00                ; start cleaning
                 ldx #$00
-                sty _CLEANCOUNTER
-                lda _CLEANX             ; calculate value
+                sty .CLEANCOUNTER
+                lda .CLEANX             ; calculate value
                 clc         
                 adc #$30
-                sta _CLEANVALUE         
+                sta .CLEANVALUE         
                 
-_cleanrowloop2  lda _CLEANVALUE
+.cleanrowloop2  lda .CLEANVALUE
                 cmp CHESSBOARD,y 
-                bne _cleanrownext
+                bne .cleanrownext
                 lda BOARDCHAR
                 sta CHESSBOARD,y 
 
-_cleanrownext   iny                     ; increase counters
+.cleanrownext   iny                     ; increase counters
                 inx
                 cpx NDIM
-                bne _cleanrowloop2
+                bne .cleanrowloop2
                 ldx #$00
-                inc _CLEANCOUNTER
-                lda _CLEANCOUNTER
+                inc .CLEANCOUNTER
+                lda .CLEANCOUNTER
                 cmp NDIM
-                bne _cleanrowloop2
+                bne .cleanrowloop2
 ;
                 rts                     ; return
 
@@ -287,182 +289,182 @@ _cleanrownext   iny                     ; increase counters
 ;  ldy #$01         ; (column no, 0..7)
 ;  jsr place        
 ;==========================================================
-
-_PLACEX         !byte $00
-_PLACEY         !byte $00
-_PLACEXLOOP     !byte $00
-_PLACEYLOOP     !byte $00
-_PLACEXCHAR     !byte $00
+!zn
+.PLACEX         !byte $00
+.PLACEY         !byte $00
+.PLACEXLOOP     !byte $00
+.PLACEYLOOP     !byte $00
+.PLACEXCHAR     !byte $00
 
 place
-                stx _PLACEX             ; store location
-                sty _PLACEY
+                stx .PLACEX             ; store location
+                sty .PLACEY
                 txa
                 clc
                 adc #$30
-                sta _PLACEXCHAR
+                sta .PLACEXCHAR
 ;
-_placerow                               ; fill the row
-                ;ldx _PLACEX
+.placerow                               ; fill the row
+                ;ldx .PLACEX
                 ldy #$00
                 jsr offsetcalc          ; calculate mem offset
-                ldy _OFFSET             ; get offset from stack                
+                ldy OFFSET             ; get offset from stack                
                 ldx #$00                ; first column
                 
 ;
-_placerowloop   
+.placerowloop   
                 lda CHESSBOARD,y        ; get chessboard cell
                 cmp BOARDCHAR                ; check if empty
-                bne _placerownext
-                lda _PLACEXCHAR         ; load filling char 
+                bne .placerownext
+                lda .PLACEXCHAR         ; load filling char 
                 sta CHESSBOARD,y        ; set chessboard cell
-_placerownext   iny                     ; increase counters
+.placerownext   iny                     ; increase counters
                 inx
                 cpx NDIM                ; end of row?
-                bne _placerowloop                
+                bne .placerowloop                
 ;
-_placecol                               ; fill the column
-                ldy _PLACEY
+.placecol                               ; fill the column
+                ldy .PLACEY
                 ldx #$00
                 jsr offsetcalc          ; calculate mem offset
-                ldy _OFFSET             ; get offset from stack                
+                ldy OFFSET             ; get offset from stack                
                 ldx #$00                ; first row
 ;
-_placecolloop   
+.placecolloop   
                 lda CHESSBOARD,y        ; get chessboard cell
                 cmp BOARDCHAR                ; check if empty
-                bne _placecolnext
-                lda _PLACEXCHAR         ; load filling char
+                bne .placecolnext
+                lda .PLACEXCHAR         ; load filling char
                 sta CHESSBOARD, y       ; set chessboard cell
-_placecolnext   lda _OFFSET             ; decrease offset by 8
+.placecolnext   lda OFFSET             ; decrease offset by 8
                 clc
                 adc NDIM
-                sta _OFFSET             ; store new offset
+                sta OFFSET             ; store new offset
                 tay
                 inx                     ; increase counter
                 cpx NDIM                ; end of row?
-                bne _placecolloop     
+                bne .placecolloop     
 ;
-_placediag                              ; fill diag (->)
-                ldy _PLACEY
-                ldx _PLACEX
-                stx _PLACEXLOOP         ; store indexes
-                sty _PLACEYLOOP
+.placediag                              ; fill diag (->)
+                ldy .PLACEY
+                ldx .PLACEX
+                stx .PLACEXLOOP         ; store indexes
+                sty .PLACEYLOOP
                 jsr offsetcalc          ; calculate mem offset
 ;
-_placediagloop  ldx _PLACEXLOOP         ; move indexes ->
-                ldy _PLACEYLOOP
+.placediagloop  ldx .PLACEXLOOP         ; move indexes ->
+                ldy .PLACEYLOOP
                 inx
                 iny
                 cpx NDIM                ; end of row?
-                beq _placeback     
+                beq .placeback     
                 cpy NDIM                ; end of column?
-                beq _placeback  
-                stx _PLACEXLOOP         ; store indexes
-                sty _PLACEYLOOP    
-                lda _OFFSET             ; increase offset by 9
+                beq .placeback  
+                stx .PLACEXLOOP         ; store indexes
+                sty .PLACEYLOOP    
+                lda OFFSET             ; increase offset by 9
                 clc
                 adc NDIMP1
-                sta _OFFSET       
+                sta OFFSET       
                 tay 
                 lda CHESSBOARD,y        ; get chessboard cell
                 cmp BOARDCHAR                ; check if empty
-                bne _placediagloop                 
-                lda _PLACEXCHAR         ; load filling char
+                bne .placediagloop                 
+                lda .PLACEXCHAR         ; load filling char
                 sta CHESSBOARD, y       ; set chessboard cell
-                jmp _placediagloop         
-_placeback                              ; fill diag (<-)
+                jmp .placediagloop         
+.placeback                              ; fill diag (<-)
 ;
-                ldy _PLACEY             
-                ldx _PLACEX
-                stx _PLACEXLOOP         ; restore indexes
-                sty _PLACEYLOOP
+                ldy .PLACEY             
+                ldx .PLACEX
+                stx .PLACEXLOOP         ; restore indexes
+                sty .PLACEYLOOP
                 jsr offsetcalc          ; calculate mem offset
 ;
-_placebackloop  ldx _PLACEXLOOP         ; move indexes <-
-                ldy _PLACEYLOOP
+.placebackloop  ldx .PLACEXLOOP         ; move indexes <-
+                ldy .PLACEYLOOP
                 dex
                 dey
                 cpx #$FF                ; end of row?
-                beq _placediag2     
+                beq .placediag2     
                 cpy #$FF                ; end of column?
-                beq _placediag2  
-                stx _PLACEXLOOP         ; store indexes
-                sty _PLACEYLOOP    
-                lda _OFFSET             ; decrease offset by 9
+                beq .placediag2  
+                stx .PLACEXLOOP         ; store indexes
+                sty .PLACEYLOOP    
+                lda OFFSET             ; decrease offset by 9
                 sec
                 sbc NDIMP1
-                sta _OFFSET
+                sta OFFSET
                 tay
                 lda CHESSBOARD,y        ; get chessboard cell
                 cmp BOARDCHAR                ; check if empty
-                bne _placebackloop   
-                lda _PLACEXCHAR         ; load filling char 
+                bne .placebackloop   
+                lda .PLACEXCHAR         ; load filling char 
                 sta CHESSBOARD, y       ; set chessboard cell   
-                jmp _placebackloop
+                jmp .placebackloop
 ;
-_placediag2                              ; fill diag (->)
-                ldy _PLACEY
-                ldx _PLACEX
-                stx _PLACEXLOOP         ; store indexes
-                sty _PLACEYLOOP
+.placediag2                              ; fill diag (->)
+                ldy .PLACEY
+                ldx .PLACEX
+                stx .PLACEXLOOP         ; store indexes
+                sty .PLACEYLOOP
                 jsr offsetcalc          ; calculate mem offset
 ;
-_placediag2loop ldx _PLACEXLOOP         ; move indexes ->
-                ldy _PLACEYLOOP
+.placediag2loop ldx .PLACEXLOOP         ; move indexes ->
+                ldy .PLACEYLOOP
                 dex
                 iny
                 cpx #$FF                ; end of row?
-                beq _placeback2     
+                beq .placeback2     
                 cpy NDIM                ; end of column?
-                beq _placeback2  
-                stx _PLACEXLOOP         ; store indexes
-                sty _PLACEYLOOP    
-                lda _OFFSET             ; increase offset by 9
+                beq .placeback2  
+                stx .PLACEXLOOP         ; store indexes
+                sty .PLACEYLOOP    
+                lda OFFSET             ; increase offset by 9
                 sec
                 sbc NDIML1
-                sta _OFFSET       
+                sta OFFSET       
                 tay 
                 lda CHESSBOARD,y        ; get chessboard cell
                 cmp BOARDCHAR                ; check if empty
-                bne _placediag2loop                 
-                lda _PLACEXCHAR         ; load filling char
+                bne .placediag2loop                 
+                lda .PLACEXCHAR         ; load filling char
                 sta CHESSBOARD, y       ; set chessboard cell
-                jmp _placediag2loop  
-_placeback2                              ; fill diag (->)
-                ldy _PLACEY
-                ldx _PLACEX
-                stx _PLACEXLOOP         ; store indexes
-                sty _PLACEYLOOP
+                jmp .placediag2loop  
+.placeback2                              ; fill diag (->)
+                ldy .PLACEY
+                ldx .PLACEX
+                stx .PLACEXLOOP         ; store indexes
+                sty .PLACEYLOOP
                 jsr offsetcalc          ; calculate mem offset
 ;
-_placeback2loop ldx _PLACEXLOOP         ; move indexes ->
-                ldy _PLACEYLOOP
+.placeback2loop ldx .PLACEXLOOP         ; move indexes ->
+                ldy .PLACEYLOOP
                 inx
                 dey
                 cpx NDIM                ; end of row?
-                beq _placequeen     
+                beq .placequeen     
                 cpy #$FF                ; end of column?
-                beq _placequeen  
-                stx _PLACEXLOOP         ; store indexes
-                sty _PLACEYLOOP    
-                lda _OFFSET             ; increase offset by 9
+                beq .placequeen  
+                stx .PLACEXLOOP         ; store indexes
+                sty .PLACEYLOOP    
+                lda OFFSET             ; increase offset by 9
                 clc
                 adc NDIML1
-                sta _OFFSET       
+                sta OFFSET       
                 tay 
                 lda CHESSBOARD,y        ; get chessboard cell
                 cmp BOARDCHAR                ; check if empty
-                bne _placeback2loop                 
-                lda _PLACEXCHAR         ; load filling char
+                bne .placeback2loop                 
+                lda .PLACEXCHAR         ; load filling char
                 sta CHESSBOARD, y       ; set chessboard cell
-                jmp _placeback2loop                  
-_placequeen                   
+                jmp .placeback2loop                  
+.placequeen                   
 ;
-                ldx _PLACEX
-                ldy _PLACEY
+                ldx .PLACEX
+                ldy .PLACEY
                 jsr offsetcalc          ; calculate mem offset
-                ldy _OFFSET             ; get offset from stack
+                ldy OFFSET             ; get offset from stack
                 lda QUEENCHAR                ; load filling char
                 sta CHESSBOARD,y        ; set chessboard cell
 
@@ -475,25 +477,25 @@ _placequeen
 ; Usage:
 ;  ldx #$01         ; (row no, 0..7)
 ;  ldy #$01         ; (column no, 0..7)
-;  jsr offsetcalc   ; result in _OFFSET 
-;  lda _OFFSET 
+;  jsr offsetcalc   ; result in OFFSET 
+;  lda OFFSET 
 ;==========================================================
-
-_OFFSET         !byte $00
+!zn
+OFFSET         !byte $00
 
 offsetcalc      
                 lda #$00                ; reset offset
-_offsetrow      cpx #$00                ; last row?
-                beq _offsetcolumn       ; offset calculated, jmp
+.offsetrow      cpx #$00                ; last row?
+                beq .offsetcolumn       ; offset calculated, jmp
                 dex                     ; decrease row no
                 clc                     ; clear carry (for adc)
                 adc NDIM                ; add one row offset
-                jmp _offsetrow          ; loop
-_offsetcolumn   sta _OFFSET             ; store row offset in menory
+                jmp .offsetrow          ; loop
+.offsetcolumn   sta OFFSET             ; store row offset in menory
                 tya                     ; move column no (y) to a
                 clc                     ; clear carry (for adc)
-                adc _OFFSET             ; add column offset
-                sta _OFFSET             ; store again in memory
+                adc OFFSET             ; add column offset
+                sta OFFSET             ; store again in memory
                 rts
 
 ;==========================================================
@@ -501,48 +503,48 @@ _offsetcolumn   sta _OFFSET             ; store row offset in menory
 ; Usage:
 ;  jsr printboard
 ;==========================================================
+!zn
+.CURSORX        !byte $FF
+.CURSORY        !byte $00
+.ROWCOUNT       !byte $00
 
-_CURSORX        !byte $FF
-_CURSORY        !byte $00
-_ROWCOUNT       !byte $00
-
-printboard      lda _CURSORX
+printboard      lda .CURSORX
                 cmp #$FF
-                bne _printsetcursor
+                bne .printsetcursor
                 sec
                 jsr CURSORPOS
-                stx _CURSORX
-                sty _CURSORY
-                jmp _printboardinit
+                stx .CURSORX
+                sty .CURSORY
+                jmp .printboardinit
 ;
-_printsetcursor ldx _CURSORX
-                ldy _CURSORY
+.printsetcursor ldx .CURSORX
+                ldy .CURSORY
                 clc
                 jsr CURSORPOS 
 ;                               
-_printboardinit ldx #$00                ; reset chars counter
-                stx _ROWCOUNT
+.printboardinit ldx #$00                ; reset chars counter
+                stx .ROWCOUNT
                 lda #$0D                ; go to next line
                 jsr BSOUT               
 ; 
-_printrow       ldy #$00                ; reset row counter
-_printrowloop   lda CHESSBOARD,x        ; get chessboard content
+.printrow       ldy #$00                ; reset row counter
+.printrowloop   lda CHESSBOARD,x        ; get chessboard content
                 cmp QUEENCHAR           ; is it a queen?
-                beq _printrowchar
+                beq .printrowchar
                 lda BOARDCHAR           ; load board fill char
-_printrowchar   jsr BSOUT               ; print it
+.printrowchar   jsr BSOUT               ; print it
                 inx                     ; increase counters                
                 iny                     
                 cpy NDIM                ; end of row?
-                bne _printrowloop
+                bne .printrowloop
 ;
                 lda #$0D                ; go to next line
                 jsr BSOUT
 ;
-                inc _ROWCOUNT           ; increase row counter
-                lda _ROWCOUNT
+                inc .ROWCOUNT           ; increase row counter
+                lda .ROWCOUNT
                 cmp NDIM                ; end of board?
-                bne _printrow
+                bne .printrow
 ;
                 rts                     ; return
                 
@@ -554,16 +556,19 @@ _printrowchar   jsr BSOUT               ; print it
 ;  ldy #>.hello ;string address MSB
 ;  jsr sprint
 ;==========================================================
-
+!zn
 sprint          stx BSOUTPTR          ;save string pointer LSB
                 sty BSOUTPTR+1        ;save string pointer MSB
                 ldy #0                ;starting string index
 ;
-_sprint01       lda (BSOUTPTR),y      ;get a character
-                beq _sprint02         ;end of string
+.sprint01       lda (BSOUTPTR),y      ;get a character
+                beq .sprint02         ;end of string
 ;
                 jsr BSOUT             ;print character
                 iny                   ;next
-                bne _sprint01
+                bne .sprint01
 ;
-_sprint02       rts                  ;exit
+.sprint02       rts                  ;exit
+
+
+!eof
