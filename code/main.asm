@@ -2,7 +2,7 @@
 ; C-64 6502 assembly code to solve N Queens puzzle
 ; created 2023 by Vittorio Nardone
 ;
-; http://www.vittorionardone.it
+; https://www.vittorionardone.it
 ;==========================================================
 
 ;==========================================================
@@ -70,9 +70,9 @@ COLOR           !byte $01
 !zn
 entry
 
-                lda COLOR               ; load color value
-                sta BGCOLOR             ; change background color
-                sta BORDERCOLOR         ; change border color
+                ; lda COLOR               ; load color value
+                ; sta BGCOLOR             ; change background color
+                ; sta BORDERCOLOR         ; change border color
                 jsr CLEARSCREEN         ; clear the screen
 ;
                 ldx #<.welcome          ; print welcome message
@@ -115,7 +115,7 @@ entry
 ;
                 rts                     ; exit the program
 
-.welcome        !pet "c64 n queens puzzle", $0D, $00 
+.welcome        !pet $0D, "c64 n queens puzzle", $0D, $00 
 .dimension      !pet "dimension (4-12)? ", $00
 
 
@@ -133,8 +133,13 @@ init            ldx NDIM                ; calculate NDIM-1
                 inx                     ; calculate NDIM+1
                 inx
                 stx NDIMP1
+                lda #$FF
+                sta CURSORX
                 lda BOARDCHAR
                 ldx #$00
+                stx FOUNDCOUNTH
+                stx FOUNDCOUNTL
+                
 ;
 .initloop       sta CHESSBOARD,x        ; fill board 
                 inx
@@ -152,8 +157,8 @@ init            ldx NDIM                ; calculate NDIM-1
 .RUNX           !byte $00
 .RUNY           !byte $00  
 .LASTRUNY       !fill $0C, $00 
-.FOUNDCOUNTL    !byte $00
-.FOUNDCOUNTH    !byte $00
+FOUNDCOUNTL     !byte $00
+FOUNDCOUNTH     !byte $00
 
 run
                 stx .RUNX             ; store location
@@ -193,9 +198,9 @@ run
                 ldy .LASTRUNY, x
                 jmp .runmoveright
 
-.runfound       inc .FOUNDCOUNTL        ; result found, inc
+.runfound       inc FOUNDCOUNTL        ; result found, inc
                 bne .runfoundprint
-                inc .FOUNDCOUNTH
+                inc FOUNDCOUNTH
 
 .runfoundprint  jsr printboard          ; print founded result
                 ldx .RUNX
@@ -206,8 +211,8 @@ run
                 ldx #<.found            ; print results message
                 ldy #>.found 
                 jsr sprint
-                lda .FOUNDCOUNTH
-                ldx .FOUNDCOUNTL
+                lda FOUNDCOUNTH
+                ldx FOUNDCOUNTL
                 jsr BUINTOUT
                 lda #$0D     
                 jsr BSOUT
@@ -501,20 +506,20 @@ offsetcalc
 ;  jsr printboard
 ;==========================================================
 !zn
-.CURSORX        !byte $FF
+CURSORX         !byte $FF
 .CURSORY        !byte $00
 .ROWCOUNT       !byte $00
 
-printboard      lda .CURSORX            ; first time call? 
+printboard      lda CURSORX            ; first time call? 
                 cmp #$FF
                 bne .printsetcursor
                 sec
                 jsr CURSORPOS           ; get & store cursor position 
-                stx .CURSORX            
+                stx CURSORX            
                 sty .CURSORY
                 jmp .printboardinit
 ;
-.printsetcursor ldx .CURSORX            ; restore cursor position
+.printsetcursor ldx CURSORX            ; restore cursor position
                 ldy .CURSORY
                 clc
                 jsr CURSORPOS 
