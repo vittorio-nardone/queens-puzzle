@@ -65,6 +65,12 @@ BOARDCHAR       !byte $A6
 COLOR           !byte $01
 
 ;==========================================================
+; INCLUDE
+;==========================================================
+
+!src "code/seconds.asm"
+
+;==========================================================
 ; CODE
 ;==========================================================
 !zn
@@ -108,16 +114,19 @@ entry
                 lda #$0D                
                 jsr BSOUT
 ;
-                jsr init                ; init memory
+                jsr starttimer	        ; start seconds counter
 ;
+                jsr init                ; init memory
+;              
                 ldx #$00                ; start from row 0
                 jsr run
+;
+                jsr stoptimer	        ; stop seconds counter
 ;
                 rts                     ; exit the program
 
 .welcome        !pet $0D, "c64 n queens puzzle", $0D, $00 
 .dimension      !pet "dimension (4-12)? ", $00
-
 
 ;==========================================================
 ; Init
@@ -214,13 +223,19 @@ run
                 lda FOUNDCOUNTH
                 ldx FOUNDCOUNTL
                 jsr BUINTOUT
+
+                ldx #<.timeelapsed       ; print results message
+                ldy #>.timeelapsed 
+                jsr sprint
+                jsr printtimer
+
                 lda #$0D     
                 jsr BSOUT
 
                 rts                     ; end of the run
 
 .found          !pet $0D, "solutions found: ", $00 
-
+.timeelapsed    !pet $0D, "duration in seconds: ", $00
 
 ;==========================================================
 ; Wait for a key pressed (result in A)
@@ -571,6 +586,5 @@ sprint          stx BSOUTPTR          ;save string pointer LSB
                 bne .sprint01
 ;
 .sprint02       rts                   ;exit
-
 
 !eof

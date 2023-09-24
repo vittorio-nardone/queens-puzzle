@@ -5,6 +5,7 @@ This is a generic implementation able to solve and find all solutions for N in t
 
 ![Solution](img/Queen.png)
 
+Download PRG file from [here](build/main.prg) 
 
 ### VSCode template
 
